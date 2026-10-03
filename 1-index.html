@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crunchbyte Link Shortener</title>
+<meta name="description" content="Link shortener">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Crunchbyte Link Shortener">
+<meta property="og:description" content="Link shortener">
+<meta property="og:url" content="https://create.crunchbytes.dpdns.org/">
+<meta property="og:image" content="https://create.crunchbytes.dpdns.org/logo.png">
+<meta property="og:image:width" content="600">
+<meta property="og:image:height" content="600">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://create.crunchbytes.dpdns.org/logo.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 20%,#1b2a5a,#0a0d1f 60%);color:#e8ecff;font-family:system-ui,sans-serif}
+.card{width:min(92vw,520px);background:#121733;border:1px solid #2a3470;border-radius:16px;padding:28px;box-shadow:0 10px 40px #0008}
+h1{margin:0 0 6px;font-size:1.6rem}
+p.sub{margin:0 0 20px;color:#9aa6d6}
+input{width:100%;padding:12px;margin-bottom:12px;border-radius:10px;border:1px solid #2a3470;background:#0a0d1f;color:#fff;font-size:1rem}
+button{width:100%;padding:12px;border:0;border-radius:10px;background:#4f7cff;color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6}
+#out{margin-top:16px;word-break:break-all}
+#out a{color:#8fb0ff}
+.err{color:#ff8a8a}
+.copy{margin-top:8px;background:#26305f}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Link Shortener</h1>
+<p class="sub">Paste a long link, get a short one.</p>
+<form id="f">
+<input id="url" type="text" placeholder="example.com/very/long/link" autocapitalize="off" autocorrect="off" required>
+<input id="dom" placeholder="Short.io domain (e.g. go.example.com)" style="display:none">
+<button id="b">Shorten</button>
+</form>
+<div id="out"></div>
+</div>
+<script>
+const API_KEY = "pk_bor14OVhQZJJ4Evn"; // public, create-only key
+const DOMAIN = "link.crunchbytes.dpdns.org";
+function fixUrl(v){v=v.trim();return /^[a-z][a-z0-9+.-]*:\/\//i.test(v)?v:"https://"+v;}
+const dom = document.getElementById("dom");
+if (!DOMAIN) dom.style.display = "block";
+document.getElementById("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const out = document.getElementById("out"), b = document.getElementById("b");
+  const domain = DOMAIN || dom.value.trim();
+  if (!domain) { out.innerHTML = '<span class="err">Enter a domain.</span>'; return; }
+  b.disabled = true; out.textContent = "Working...";
+  try {
+    const r = await fetch("https://api.short.io/links/public", {
+      method: "POST",
+      headers: {"Content-Type":"application/json","Accept":"application/json","Authorization":API_KEY},
+      body: JSON.stringify({originalURL: fixUrl(document.getElementById("url").value), domain})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || d.message || "Request failed");
+    const raw = d.secureShortURL || d.shortURL;
+    const s = location.origin + "/go.html?s=" + encodeURIComponent(d.path || raw.split("/").pop());
+    out.innerHTML = '<a href="'+s+'" target="_blank" rel="noopener">'+s+'</a><button class="copy" id="c">Copy</button><div style="margin-top:10px;color:#9aa6d6;font-size:.85rem">Plain short link: <a href="'+raw+'" target="_blank" rel="noopener">'+raw+'</a></div>';
+    document.getElementById("c").onclick = () => { navigator.clipboard.writeText(s); document.getElementById("c").textContent="Copied"; };
+  } catch (x) {
+    out.innerHTML = '<span class="err">'+String(x.message).replace(/</g,"&lt;")+'</span>';
+  }
+  b.disabled = false;
+});
+</script>
+</body>
+</html>
